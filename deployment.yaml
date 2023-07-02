@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: orders-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: backend-deployment
+  template:
+    metadata:
+      labels:
+        app: backend-deployment
+    spec:
+      containers:
+        - name: orders-service
+          image: ./
+          ports:
+            - containerPort: 5000
+            resources:
+              limits:
+                memory: 250Mi
+              requests:
+                memory: 100Mi
+        - name: products-service
+          image: ../products-service
+          ports:
+            - containerPort: 5001
+            resources:
+              limits:
+                memory: 250Mi
+              requests:
+                memory: 100Mi
+        - name: payments-service
+          image: ../payments-service
+          ports:
+            - containerPort: 5002
+            resources:
+              limits:
+                memory: 250Mi
+              requests:
+                memory: 100Mi
+        - name: shipping-service
+          image: ../shipping-service
+          ports:
+            - containerPort: 5003
+            resources:
+              limits:
+                memory: 250Mi
+              requests:
+                memory: 100Mi
