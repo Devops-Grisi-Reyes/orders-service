@@ -2,7 +2,10 @@ name: Publish Docker image
 
 on:
   push:
-    branches: ['dev']
+    branches:
+      - dev
+      - main
+      - staging
 
 env:
   AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -11,10 +14,11 @@ env:
   AWS_REGION: 'us-east-1'
   DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
   DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+  SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
 jobs:
   build:
-    name: Build and Push Docker image to Docker Hub
+    name: Build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -30,7 +34,7 @@ jobs:
         uses: docker/metadata-action@9ec57ed1fcdbf14dcef7dfbe97b2010124a938b7
         with:
           images: maurig13/devops-grisi-reyes
-          tags: orders-service-dev
+          tags: orders-service-${{ github.ref_name }}
 
       - uses: docker/setup-buildx-action@v1
 
@@ -44,9 +48,57 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+  test:
+    name: Test
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: Set up JDK 11
+        uses: actions/setup-java@v3
+        with:
+          java-version: 11
+          distribution: 'zulu'
+      - name: Cache SonarCloud packages
+        uses: actions/cache@v3
+        with:
+          path: ~/.sonar/cache
+          key: ${{ runner.os }}-sonar
+          restore-keys: ${{ runner.os }}-sonar
+      - name: Cache Maven packages
+        uses: actions/cache@v3
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2
+      - name: Build and analyze
+        env:
+          SONAR_TOKEN: ${{ env.SONAR_TOKEN }}
+        run: mvn -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.projectKey=Devops-Grisi-Reyes_orders-service
+
+      - name: Check Quality Gate Status
+        env:
+          SONAR_TOKEN: ${{ env.SONAR_TOKEN }}
+        run: |
+          analysis_id=$(curl --location --request GET \
+            "https://sonarcloud.io/api/project_analyses/search?project=Devops-Grisi-Reyes_orders-service&branch=${{ github.ref_name }}" \
+            --header "Authorization: Basic ${{ env.SONAR_TOKEN }}" \
+            --header "Content-Type: application/json" \
+            --header "Accept: application/json" \
+            | jq -r '.analyses[0].key')
+          quality_gate_status=$(curl --location --request GET \
+            "https://sonarcloud.io/api/qualitygates/project_status?analysisId=$analysis_id" \
+            --header "Authorization: Basic ${{ env.SONAR_TOKEN }}" \
+            --header "Content-Type: application/json" \
+            --header "Accept: application/json" \
+            | jq -r '.projectStatus.status')
+          echo "SonarQube quality gate status: $quality_gate_status"
+
   deploy:
-    needs: build #[build, test]
-    name: Deploy to EKS
+    needs: [build, test]
+    name: Deploy
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -63,7 +115,7 @@ jobs:
           aws-region: ${{ env.AWS_REGION}}
 
       - name: Update kube config
-        run: aws eks update-kubeconfig --name cluster-grisi-reyes-dev
+        run: aws eks update-kubeconfig --name cluster-grisi-reyes-${{ github.ref_name }}
 
       - name: Deploy to EKS
         run: |
