@@ -78,23 +78,13 @@ jobs:
           SONAR_TOKEN: ${{ env.SONAR_TOKEN }}
         run: mvn -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.projectKey=Devops-Grisi-Reyes_orders-service
 
-      - name: Check Quality Gate Status
-        env:
-          SONAR_TOKEN: ${{ env.SONAR_TOKEN }}
+      - name: Check Quality Gates
         run: |
-          analysis_id=$(curl --location --request GET \
-            "https://sonarcloud.io/api/project_analyses/search?project=Devops-Grisi-Reyes_orders-service&branch=${{ github.ref_name }}" \
-            --header "Authorization: Basic ${{ env.SONAR_TOKEN }}" \
-            --header "Content-Type: application/json" \
-            --header "Accept: application/json" \
-            | jq -r '.analyses[0].key')
-          quality_gate_status=$(curl --location --request GET \
-            "https://sonarcloud.io/api/qualitygates/project_status?analysisId=$analysis_id" \
-            --header "Authorization: Basic ${{ env.SONAR_TOKEN }}" \
-            --header "Content-Type: application/json" \
-            --header "Accept: application/json" \
-            | jq -r '.projectStatus.status')
-          echo "SonarQube quality gate status: $quality_gate_status"
+          curl -u ${{ env.SONAR_TOKEN }} "https://sonarcloud.io/api/qualitygates/project_status?projectKey=Devops-Grisi-Reyes_orders-service&branch=${{ github.ref_name }}" > result.json
+          cat result.json
+          if [ $(jq -r '.projectStatus.status' result.json) = ERROR ]; then
+            echo "Se aborta el pipeline debido a que no cumple con los Quality Gates"
+            exit 1
 
   deploy:
     needs: [build, test]
