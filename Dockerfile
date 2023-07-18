@@ -11,6 +11,10 @@ FROM openjdk:11
 
 COPY --from=builder /app/target/orders-service-example-*.jar /target/orders-service-example.jar
 
-EXPOSE 5000
+EXPOSE 8080
 
-CMD ["java", "-jar", "/target/orders-service-example.jar", "http://localhost:5002/", "http://localhost:5003/",  "http://localhost:5001/"]
+RUN curl http://payments-service:8080/payments/
+RUN curl http://shipping-service:8080/shipping/
+RUN curl http://products-service:8080/products/
+
+CMD ["java", "-jar", "/target/orders-service-example.jar", "http://payments-service:8080/", "http://shipping-service:8080/",  "http://products-service:8080/"]
