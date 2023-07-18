@@ -81,7 +81,7 @@ jobs:
       - name: Check Quality Gates
         run: |
           curl -u ${{ env.SONAR_TOKEN }} "https://sonarcloud.io/api/qualitygates/project_status?projectKey=Devops-Grisi-Reyes_orders-service&branch=${{ github.ref_name }}" > result.json
-          cat result.json
+
           if [ $(jq -r '.projectStatus.status' result.json) = ERROR ]; then
             echo "Se aborta el pipeline debido a que no cumple con los Quality Gates"
             exit 1
