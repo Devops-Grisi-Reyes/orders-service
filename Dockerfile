@@ -13,5 +13,5 @@ COPY --from=builder /app/target/orders-service-example-*.jar /target/orders-serv
 
 EXPOSE 8080
 
-CMD ["java", "-jar", "/target/orders-service-example.jar", "https://payments-service:8080/", "https://shipping-service:8080/",  "https://products-service:8080/"]
+CMD ["java", "-jar", "/target/orders-service-example.jar", "payments-service:8080", "shipping-service:8080",  "products-service:8080"]
 # CMD ["java", "-jar", "/target/orders-service-example.jar", "http://payments-service:30037/", "http://shipping-service:30039/",  "http://products-service:30038/"]
