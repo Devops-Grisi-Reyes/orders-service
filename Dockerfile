@@ -13,7 +13,7 @@ COPY --from=builder /app/target/orders-service-example-*.jar /target/orders-serv
 
 EXPOSE 8080
 
-RUN curl -X POST payments-service:8080/payments/3
+# RUN curl -X POST payments-service:8080/payments/3
 
 CMD ["java", "-jar", "/target/orders-service-example.jar", "http://payments-service:8080/", "http://shipping-service:8080/",  "http://products-service:8080/"]
 # CMD ["java", "-jar", "/target/orders-service-example.jar", "http://payments-service:30037/", "http://shipping-service:30039/",  "http://products-service:30038/"]
