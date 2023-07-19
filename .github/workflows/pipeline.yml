@@ -85,6 +85,7 @@ jobs:
           if [ $(jq -r '.projectStatus.status' result.json) = ERROR ]; then
             echo "Se aborta el pipeline debido a que no cumple con los Quality Gates"
             exit 1
+          fi
 
   deploy:
     needs: [build, test]
