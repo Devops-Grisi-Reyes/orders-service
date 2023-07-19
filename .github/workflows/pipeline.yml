@@ -15,6 +15,7 @@ env:
   DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
   DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
   SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+  PERSONAL_ACCESS_TOKEN_INFRA: ${{ secrets.PERSONAL_ACCESS_TOKEN_INFRA }}
 
 jobs:
   build:
@@ -105,8 +106,14 @@ jobs:
           aws-region: ${{ env.AWS_REGION}}
 
       - name: Update kube config
-        run: aws eks update-kubeconfig --name cluster-grisi-reyes-${{ github.ref_name }}
+        run: aws eks update-kubeconfig --region ${{ env.AWS_REGION}} --name cluster-grisi-reyes-${{ github.ref_name }}
+
+      - uses: actions/checkout@v3
+        with:
+          repository: Devops-Grisi-Reyes/Infra
+          ref: master
+          token: ${{ env.PERSONAL_ACCESS_TOKEN_INFRA }}
 
       - name: Deploy to EKS
         run: |
-          kubectl apply -f deployment/deployment.yml
+          kubectl apply -f ./deployments/shipping-service-deployment.yml
